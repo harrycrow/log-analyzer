@@ -30,8 +30,7 @@ jobs:
         run: uv run ruff check --output-format=github .
 
       - name: mypy  # Run mypy static analysis
-        run: |
-          uv run mypy -p tsgen
+        run: uv run mypy .
 
       - name: Run tests
         run: uv run pytest tests
