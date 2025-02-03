@@ -26,19 +26,8 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - id: ruff
-        name: Ruff
-        entry: uv run ruff
-        args: ["check", "--fix"]
-        types: [python]
-        language: system
-
-      - id: ruff-format
-        name: Ruff Format
-        entry: uv run ruff
-        args: [format]
-        language: system
-        types: [python]
+      - name: Run ruff
+        run: uv run ruff check --output-format=github .
 
       - name: mypy  # Run mypy static analysis
         run: |
