@@ -12,13 +12,37 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up Python 3.12
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          # Install a specific version of uv.
+          version: "0.5.26"
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version-file: "pyproject.toml"
 
-      - name: Install dependencies
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - id: ruff
+        name: Ruff
+        entry: uv run ruff
+        args: ["check", "--fix"]
+        types: [python]
+        language: system
+
+      - id: ruff-format
+        name: Ruff Format
+        entry: uv run ruff
+        args: [format]
+        language: system
+        types: [python]
+
+      - name: mypy  # Run mypy static analysis
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
+          uv run mypy -p tsgen
+
+      - name: Run tests
+        run: uv run pytest tests
