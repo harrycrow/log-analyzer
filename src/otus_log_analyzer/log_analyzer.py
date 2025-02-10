@@ -201,6 +201,7 @@ def log_analyzer(
             return report_path
     else:
         logger.info("No log file found")
+        return config["LOG_DIR"]
     return None
 
 
