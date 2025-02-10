@@ -1,0 +1,14 @@
+services:
+  otus-log-analyzer:
+    environment:
+      - PATH=/root/.pyenv/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8888:8888'
+    volumes:
+      - ./src:/src
+      - ./tests:/tests
+      - ./reports:/reports
+      - ./logs:/logs

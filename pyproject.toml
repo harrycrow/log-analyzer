@@ -5,8 +5,23 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "click>=8.1.8",
     "mypy>=1.14.1",
     "pre-commit>=4.1.0",
     "pytest>=8.3.4",
+    "pyyaml>=6.0.2",
     "ruff>=0.9.4",
+    "structlog>=25.1.0",
+    "types-pyyaml>=6.0.12.20241230",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+explicit_package_bases = true
+namespace_packages = true
+packages = ["src"]
+exclude = ["tests/"]
+
+[[tool.mypy.overrides]]
+module = ["yaml.*", "structlog.*"]
+ignore_missing_imports = true

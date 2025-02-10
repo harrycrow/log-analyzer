@@ -1,2 +1,2 @@
-hello
+__init__
 log_analyzer
