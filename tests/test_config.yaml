@@ -1,3 +1,5 @@
 REPORT_DIR: ./reports
 ERROR_THRESHOLD: 0.9
 REPORT_SIZE: 10
+LOG_DIR: ./log
+LOG_FILE: ./log/log.json

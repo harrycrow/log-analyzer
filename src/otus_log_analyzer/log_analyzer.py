@@ -92,11 +92,10 @@ def parse_log(
     with open_func(log.path, "rt") as f:
         for line in f:
             try:
-                fields = list(
-                    filter(
-                        lambda x: len(x) > 0, [field.strip() for field in line.split()]
-                    )
-                )
+                fields = [
+                    f for f in re.findall(r'\[([^]]*)\]|"([^"]*)"|(\S+)', line) if f
+                ]
+                fields = ["".join(group) for group in fields]
                 parsed_line: Dict[str, str] = {}
                 for i, key in enumerate(keys):
                     if fields[i] != "-":
@@ -126,9 +125,12 @@ def compute_report(
     logger: structlog.BoundLogger,
     stream: Generator[Dict[str, str], None, float],
     log: Log,
-) -> None:
-    if os.path.exists(os.path.join(config["REPORT_DIR"], f"report-{log.date}.html")):
-        return
+) -> Optional[str]:
+    report_path = os.path.join(
+        config["REPORT_DIR"], f"report-{log.date.strftime('%Y.%m.%d')}.html"
+    )
+    if os.path.exists(report_path):
+        return report_path
 
     overall_count: int = 0
     overall_time_sum = 0.0
@@ -149,7 +151,7 @@ def compute_report(
         error_ratio = float(e.value)
         if error_ratio >= config.get("ERROR_THRESHOLD", 1.0):
             logger.error("Error ratio is too high", error_ratio=error_ratio)
-            return
+            return None
 
     final_report: List[ReportEntry] = []
     for url in report:
@@ -179,18 +181,33 @@ def compute_report(
     template_path = config.get(
         "TEMPLATE_PATH", os.path.join(config["REPORT_DIR"], "report.html")
     )
-    with open(
-        os.path.join(config["REPORT_DIR"], f"report-{log.date}.html"), "w"
-    ) as f_report:
+    with open(report_path, "w") as f_report:
         with open(template_path, "r") as f_template:
             for line in f_template:
                 f_report.write(
                     Template(line).safe_substitute(table_json=json.dumps(final_report))
                 )
+    return report_path
+
+
+def log_analyzer(
+    config: Dict[str, Any], logger: structlog.BoundLogger
+) -> Optional[str]:
+    log = find_latest_log(config)
+    if log is not None:
+        report_path = compute_report(config, logger, parse_log(logger, log), log)
+        if report_path is not None:
+            logger.info("Report computed", report=report_path)
+            return report_path
+    else:
+        logger.info("No log file found")
+    return None
 
 
 @click.command()
-@click.option("--config", default="./config.yaml", help="Path to config file")
+@click.option(
+    "--config", default="./tests/test_config.yaml", help="Path to config file"
+)
 def main(config: str) -> None:
     try:
         with open(config, "r") as f:
@@ -208,15 +225,11 @@ def main(config: str) -> None:
         sys.exit(1)
 
     try:
-        log = find_latest_log(merged_config)
-        if log is not None:
-            compute_report(merged_config, logger, parse_log(logger, log), log)
-        else:
-            logger.info("No log file found")
-            sys.exit(0)
+        log_analyzer(merged_config, logger)
     except BaseException as e:
         logger.error("Failed to compute report", error=str(e))
         sys.exit(1)
+    return None
 
 
 if __name__ == "__main__":

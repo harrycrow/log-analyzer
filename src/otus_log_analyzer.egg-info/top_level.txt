@@ -1,2 +1,2 @@
 __init__
-log_analyzer
+otus_log_analyzer
