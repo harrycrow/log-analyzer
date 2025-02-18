@@ -89,24 +89,28 @@ def parse_log(
 
     n_errors: int = 0
     n_lines: int = 0
-    with open_func(log.path, "rt") as f:
-        for line in f:
-            try:
-                fields = [
-                    f for f in re.findall(r'\[([^]]*)\]|"([^"]*)"|(\S+)', line) if f
-                ]
-                fields = ["".join(group) for group in fields]
-                parsed_line: Dict[str, str] = {}
-                for i, key in enumerate(keys):
-                    if fields[i] != "-":
-                        parsed_line[key] = fields[i]
-                logger.info("Parsed line", line=parsed_line)
-                yield parsed_line
-            except IndexError:
-                logger.error("Failed to parse line", line=line)
-                n_errors += 1
-            n_lines += 1
-    return float(n_errors) / float(n_lines)
+    try:
+        with open_func(log.path, "rt") as f:
+            for line in f:
+                try:
+                    fields = [
+                        f for f in re.findall(r'\[([^]]*)\]|"([^"]*)"|(\S+)', line) if f
+                    ]
+                    fields = ["".join(group) for group in fields]
+                    parsed_line: Dict[str, str] = {}
+                    for i, key in enumerate(keys):
+                        if fields[i] != "-":
+                            parsed_line[key] = fields[i]
+                    logger.info("Parsed line", line=parsed_line)
+                    yield parsed_line
+                except IndexError:
+                    logger.error("Failed to parse line", line=line)
+                    n_errors += 1
+                n_lines += 1
+    except FileNotFoundError as e:
+        logger.error("File not found", file=log.path)
+        raise e
+    return float(n_errors) / max(1, float(n_lines))
 
 
 def parse_request(request: Optional[str]) -> Optional[str]:
@@ -149,7 +153,7 @@ def compute_report(
                 overall_time_sum += request_time
     except StopIteration as e:
         error_ratio = float(e.value)
-        if error_ratio >= config.get("ERROR_THRESHOLD", 1.0):
+        if "ERROR_THRESHOLD" in config and error_ratio >= config["ERROR_THRESHOLD"]:
             logger.error("Error ratio is too high", error_ratio=error_ratio)
             return None
 
